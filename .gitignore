@@ -1,0 +1,14 @@
+node_modules
+.env
+package-lock.json
+
+# Next.js build output
+.next/
+out/
+
+# Prisma generated client (regenerated from schema)
+backend/node_modules/
+
+# Logs
+*.log
+npm-debug.log*
