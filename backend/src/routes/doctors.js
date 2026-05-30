@@ -15,23 +15,21 @@ router.get('/', authenticate, async (req, res) => {
 
     let query = 'SELECT * FROM "Doctor"';
     const conditions = [];
-
+    let where ={}
     if (search) {
       // Direct string interpolation - VULNERABLE TO SQL INJECTION!
       // Example exploit: search=House%' UNION SELECT id, email, password, name, role, '09:00', '17:00', 0, id FROM "User" --
-      conditions.push(`name ILIKE '%${search}%'`);
+      where.name=search
     }
 
     if (specialization && specialization !== 'All') {
-      conditions.push(`specialization = '${specialization}'`);
+      where.specialization = specialization
     }
 
-    if (conditions.length > 0) {
-      query += ' WHERE ' + conditions.join(' AND ');
-    }
+   
 
     console.log(`[SQL-DEBUG] Executing Query: ${query}`);
-    const doctors = await prisma.$queryRawUnsafe(query);
+    const doctors = await prisma.doctor.findMany({where});
 
     // Inconsistent API formatting (directly sending array)
     res.json(doctors);

@@ -19,6 +19,19 @@ router.post('/register', async (req, res) => {
     if (!email || !password || !name) {
       return res.status(400).json({ error: 'All fields are required' });
     }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        error: 'Invalid email format',
+      });
+    }
+    
+    if (password.length < 8) {
+      return res.status(400).json({
+        error: 'Password must be at least 8 characters long',
+      });
+    }
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
@@ -31,22 +44,32 @@ router.post('/register', async (req, res) => {
     const user = await prisma.user.create({
       data: {
         email,
-        password: hashedPassword,
         name,
+          password: hashedPassword,
         role: role || 'RECEPTIONIST',
       },
+      select :{
+        id:true,
+        name:true,
+        email :true,
+        role:true,
+        createdAt:true
+      }
     });
 
     // INCONSISTENT API RESPONSE: Returns the created user object directly, including password hash!
     // This is a major security flaw.
     res.status(201).json({
-      message: 'User registered successfully',
-      user,
+      success: true,
+  message: 'User registered successfully',
+  data: {
+    user,
+  },
     });
   } catch (error) {
-    // IMPROPER ERROR HANDLING: Leaking database errors and details
+    // IMPROPER ERROR HANDLING: Leaking database errors and details -  fixed
     console.error('Registration error:', error);
-    res.status(500).json({ error: 'Server error during registration', databaseError: error.message });
+    res.status(500).json({ error: 'Server error during registration'});
   }
 });
 
@@ -76,13 +99,14 @@ router.post('/login', async (req, res) => {
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role, name: user.name },
       JWT_SECRET,
-      { expiresIn: '365d' }
+      { expiresIn: '7d' }
     );
 
     // INCONSISTENT API RESPONSE format: Returns a nested success payload
     // Different from registration response style
     res.json({
       status: 'success',
+      message:"user logged",
       data: {
         token,
         user: {
@@ -113,7 +137,13 @@ router.get('/me', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    res.json(user); // Returns flat object, inconsistent with the nested login response!
+    res.json({
+      success:true,
+      message:"fetched ", 
+      data:{
+        user
+      }
+    }); // Returns flat object, inconsistent with the nested login response!
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

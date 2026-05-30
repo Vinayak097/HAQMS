@@ -11,20 +11,20 @@ import {
 } from 'lucide-react';
 
 export default function Dashboard() {
-  const { user, token, API_BASE_URL, logout } = useAuth();
+  const { user, token, API_BASE_URL, logout, loading } = useAuth();
   const router = useRouter();
 
-  // Navigation Guard
+  // Navigation Guard — wait for auth to restore from localStorage before redirecting
   useEffect(() => {
-    if (!user) {
+    if (!loading && !user) {
       router.push('/login');
     }
-  }, [user]);
+  }, [loading, user]);
 
-  if (!user) return null;
+  
 
   // Global State
-  const [activeTab, setActiveTab] = useState(user.role === 'ADMIN' ? 'reports' : user.role === 'RECEPTIONIST' ? 'patients' : 'appointments');
+  const [activeTab, setActiveTab] = useState(user?.role === 'ADMIN' ? 'reports' : user?.role === 'RECEPTIONIST' ? 'patients' : 'appointments');
 
   // ==========================================
   // STATE FOR RECEPTIONIST WORKFLOWS
@@ -97,7 +97,7 @@ export default function Dashboard() {
 
   // Trigger Patient List Fetch (Every keystroke trigger re-renders parent! - Performance bug)
   useEffect(() => {
-    if (user.role === 'RECEPTIONIST' || user.role === 'ADMIN') {
+    if (user?.role === 'RECEPTIONIST' || user?.role === 'ADMIN') {
       fetchPatients(1);
     }
   }, [patientSearch, patientGender]);
@@ -281,10 +281,12 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    if (user.role === 'DOCTOR' && doctorsList.length > 0) {
+    if (user?.role === 'DOCTOR' && doctorsList.length > 0) {
       fetchDoctorWorklist();
     }
   }, [doctorsList]);
+
+  if (loading || !user) return null;
 
   // Update token status (WAITING -> CALLING -> COMPLETED / SKIPPED)
   const handleUpdateQueueStatus = async (tokenId, newStatus) => {
@@ -1124,14 +1126,11 @@ export default function Dashboard() {
               </button>
             </div>
 
-            <div className="p-3 bg-rose-500/10 text-rose-500 text-xs rounded-lg border border-rose-500/20 font-semibold leading-5 flex gap-3">
+            <div className="p-3 bg-rose-500/10 text-green-500 text-xs rounded-lg border border-rose-500/20 font-semibold leading-5 flex gap-3">
               <ShieldAlert className="h-5 w-5 shrink-0" />
               <div>
-                <strong>SQL Vulnerability alert:</strong> This search executes raw interpolation: 
-                <code className="block bg-black/10 dark:bg-black/30 p-1.5 rounded mt-1 font-mono">
-                  SELECT * FROM &quot;Doctor&quot; WHERE name ILIKE &apos;%&#123;query&#125;%&apos;
-                </code>
-                Can be audited by inputting standard SQL injection strings to leak full user login lists.
+                <strong>SQL Vulnerability Fixed:</strong> search now users prisma safe where : 
+                <code>where</code> filtering instead of raw SQL interpolation.
               </div>
             </div>
 
