@@ -22,28 +22,29 @@ router.get('/', authenticate, async (req, res) => {
     const appointments = await prisma.appointment.findMany({
       where,
       orderBy: { appointmentDate: 'asc' },
-    });
+      include:{
+        patient:{select:{
+          id,
+          name,
+          phoneNumber,
+          age,
+          medicalHistory
+        }}
+        ,
+        doctor:{
+          select:{
+            id,
+            name,
+            specialization,
 
+          }
+        }
+      }
+    });
     const detailedAppointments = [];
 
     // N+1 triggers here: For every single appointment, we perform two extra queries!
-    for (const app of appointments) {
-      console.log(`[N+1 DB QUERY] Fetching Patient (${app.patientId}) and Doctor (${app.doctorId}) for Appointment ${app.id}`);
-      
-      const patient = await prisma.patient.findUnique({
-        where: { id: app.patientId },
-      });
-
-      const doctor = await prisma.doctor.findUnique({
-        where: { id: app.doctorId },
-      });
-
-      detailedAppointments.push({
-        ...app,
-        patient: patient ? { id: patient.id, name: patient.name, phoneNumber: patient.phoneNumber, age: patient.age, medicalHistory: patient.medicalHistory } : null,
-        doctor: doctor ? { id: doctor.id, name: doctor.name, specialization: doctor.specialization } : null,
-      });
-    }
+    
 
     res.json({
       success: true,
@@ -54,7 +55,7 @@ router.get('/', authenticate, async (req, res) => {
     res.status(500).json({ error: 'Failed to retrieve appointments', details: error.message });
   }
 });
-
+//fixed
 // POST /api/appointments
 // Book an appointment
 // DESIGN BUG: Duplicate-prone schema. No unique index blocks duplicate appointment bookings.
