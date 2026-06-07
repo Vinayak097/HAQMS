@@ -16,15 +16,21 @@ export default function Dashboard() {
 
   // Navigation Guard — wait for auth to restore from localStorage before redirecting
   useEffect(() => {
-    if (!loading && !user) {
+    if (!loading && !user){
       router.push('/login');
     }
   }, [loading, user]);
 
   
 
-  // Global State
-  const [activeTab, setActiveTab] = useState(user?.role === 'ADMIN' ? 'reports' : user?.role === 'RECEPTIONIST' ? 'patients' : 'appointments');
+  // Global State — default empty, set after user loads
+  const [activeTab, setActiveTab] = useState('');
+
+  useEffect(() => {
+    if (user?.role) {
+      setActiveTab(user.role === 'ADMIN' ? 'reports' : user.role === 'RECEPTIONIST' ? 'patients' : 'appointments');
+    }
+  }, [user?.role]);
 
   // ==========================================
   // STATE FOR RECEPTIONIST WORKFLOWS
@@ -100,7 +106,7 @@ export default function Dashboard() {
     if (user?.role === 'RECEPTIONIST' || user?.role === 'ADMIN') {
       fetchPatients(1);
     }
-  }, [patientSearch, patientGender]);
+  }, [patientSearch, patientGender, user?.role]);
 
   // Fetch Doctors for booking drop-down
   const fetchDoctorsDropdown = async () => {
